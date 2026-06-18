@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+data/nifty100.db
+output/
+pdf_extract.txt
+*.db-journal

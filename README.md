@@ -20,9 +20,18 @@ All Sprint 1 tasks have been successfully completed and verified:
 python -m venv .venv
 .venv\Scripts\activate        # Windows
 pip install -r requirements.txt
-python -m src.etl.loader      # or: make load
-python -m pytest tests/ -v    # or: make test
+
+# Load data into database
+python -m src.etl.loader      # or: .\load.ps1 (Windows script)
+
+# Run tests
+python -m pytest tests/ -v    # or: .\test.ps1 (Windows script)
+
+# Clean database and output files
+.\clean.ps1                   # Windows cleanup script
 ```
+
+**Note**: The project includes Windows PowerShell scripts (`load.ps1`, `test.ps1`, `clean.ps1`) as alternatives to the Makefile for Windows users who don't have `make` installed.
 
 ## Project layout
 

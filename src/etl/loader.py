@@ -30,7 +30,7 @@ SUPPORTING_FILES = {
     "sectors": ("sectors.xlsx", 0),
     "stock_prices": ("stock_prices.xlsx", 0),
     "market_cap": ("market_cap.xlsx", 0),
-    "financial_ratios": ("financial_ratios.xlsx", 0),
+    # financial_ratios table is populated by ratio_engine, not loaded from Excel
     "peer_groups": ("peer_groups.xlsx", 0),
 }
 
@@ -44,7 +44,7 @@ LOAD_ORDER = [
     "profitandloss",
     "balancesheet",
     "cashflow",
-    "financial_ratios",
+    # financial_ratios is populated by ratio_engine after load
     "market_cap",
     "stock_prices",
 ]
@@ -145,24 +145,7 @@ TABLE_COLUMNS = {
         "ev_ebitda",
         "dividend_yield_pct",
     ],
-    "financial_ratios": [
-        "id",
-        "company_id",
-        "year",
-        "net_profit_margin_pct",
-        "operating_profit_margin_pct",
-        "return_on_equity_pct",
-        "debt_to_equity",
-        "interest_coverage",
-        "asset_turnover",
-        "free_cash_flow_cr",
-        "capex_cr",
-        "earnings_per_share",
-        "book_value_per_share",
-        "dividend_payout_ratio_pct",
-        "total_debt_cr",
-        "cash_from_operations_cr",
-    ],
+    # financial_ratios table is populated by ratio_engine, not loaded from Excel
     "peer_groups": ["id", "peer_group_name", "company_id", "is_benchmark"],
 }
 
@@ -207,7 +190,7 @@ def synthesize_missing_companies(
         "sectors",
         "stock_prices",
         "market_cap",
-        "financial_ratios",
+        # financial_ratios is populated by ratio_engine
         "peer_groups",
     ]
     for table_name in child_tables:

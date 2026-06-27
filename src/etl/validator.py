@@ -543,12 +543,8 @@ def run_all_validations(
         result,
         apply_cf_rule=True,
     )
-    validated["financial_ratios"] = validate_time_series_table(
-        datasets["financial_ratios"],
-        "financial_ratios",
-        valid_ids,
-        result,
-    )
+    # financial_ratios is populated by ratio_engine, skip validation here
+    validated["financial_ratios"] = None
 
     for name in ("analysis", "prosandcons", "sectors", "peer_groups"):
         validated[name] = validate_child_table_fk(

@@ -181,11 +181,11 @@ class TestCAGRCalculations:
         assert flag == 'TURNAROUND'
     
     def test_cagr_zero_base(self):
-        """CAGR with zero base returns None."""
+        """CAGR with zero base returns None with ZERO_BASE flag."""
         engine = RatioEngine()
         result, flag = engine.calculate_cagr(0, 200, 5)
         assert result is None
-        assert flag is None
+        assert flag == 'ZERO_BASE'
     
     def test_cagr_negative_end(self):
         """CAGR with negative end (declining) - should calculate normally."""

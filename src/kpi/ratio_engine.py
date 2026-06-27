@@ -175,26 +175,34 @@ class RatioEngine:
                       years: int) -> Tuple[Optional[float], Optional[str]]:
         """
         CAGR = ((end/start)^(1/n) - 1) × 100.
-        Returns (cagr_value, flag) where flag can be 'TURNAROUND' for negative base to positive end.
+        Returns (cagr_value, flag) where flag can be:
+        - TURNAROUND: negative base to positive end
+        - DECLINE_TO_LOSS: positive base to negative end
+        - BOTH_NEGATIVE: both start and end are negative
+        - ZERO_BASE: start value is zero
+        - INSUFFICIENT: less than required years of data
+        - None: normal calculation
         """
         if start_value is None or end_value is None:
             return None, None
-        if start_value < 0:
-            if end_value > 0:
-                return None, 'TURNAROUND'
-            return None, None
-        if start_value == 0:
-            return None, None
         if years <= 0:
-            return None, None
+            return None, 'INSUFFICIENT'
+
+        # Handle edge cases
+        if start_value == 0:
+            return None, 'ZERO_BASE'
+        if start_value < 0 and end_value > 0:
+            return None, 'TURNAROUND'
+        if start_value > 0 and end_value < 0:
+            return None, 'DECLINE_TO_LOSS'
+        if start_value < 0 and end_value < 0:
+            return None, 'BOTH_NEGATIVE'
 
         try:
             ratio = end_value / start_value
             if ratio < 0:
-                # Negative ratio with fractional power results in complex number
                 return None, None
             cagr = (ratio ** (1 / years) - 1) * 100
-            # Ensure result is real (not complex)
             if isinstance(cagr, complex):
                 return None, None
             return float(cagr), None
@@ -225,6 +233,67 @@ class RatioEngine:
         }
         
         return pattern_map.get(pattern, 'Unknown')
+
+    def cfo_quality_score(self, company_id: str, current_year: str) -> Optional[float]:
+        """
+        CFO Quality Score = Average of CFO/PAT ratio over 5 years.
+        Classification: >1.0 = High Quality, 0.5-1.0 = Moderate, <0.5 = Accrual Risk.
+        """
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT p.net_profit, c.operating_activity
+            FROM profitandloss p
+            JOIN cashflow c ON p.company_id = c.company_id AND p.year = c.year
+            WHERE p.company_id = ? AND p.year <= ? AND p.net_profit != 0
+            ORDER BY p.year DESC
+            LIMIT 5
+        """, (company_id, current_year))
+        rows = cursor.fetchall()
+
+        if not rows:
+            return None
+
+        ratios = []
+        for row in rows:
+            net_profit = row[0]
+            cfo = row[1]
+            if net_profit and net_profit != 0:
+                ratio = cfo / net_profit if cfo else None
+                if ratio is not None:
+                    ratios.append(ratio)
+
+        if not ratios:
+            return None
+
+        avg_ratio = sum(ratios) / len(ratios)
+        return avg_ratio
+
+    def cfo_quality_classification(self, score: Optional[float]) -> Optional[str]:
+        """Classify CFO quality score."""
+        if score is None:
+            return None
+        if score > 1.0:
+            return 'High Quality'
+        elif score >= 0.5:
+            return 'Moderate'
+        else:
+            return 'Accrual Risk'
+
+    def capex_intensity_classification(self, investing_activity: Optional[float],
+                                       sales: Optional[float]) -> Optional[str]:
+        """
+        CapEx Intensity = abs(investing_activity) / sales × 100.
+        Classification: <3% = Asset Light, 3-8% = Moderate, >8% = Capital Intensive.
+        """
+        if sales is None or sales == 0 or investing_activity is None:
+            return None
+        intensity = abs(investing_activity) / sales * 100
+        if intensity < 3:
+            return 'Asset Light'
+        elif intensity <= 8:
+            return 'Moderate'
+        else:
+            return 'Capital Intensive'
     
     def get_company_data(self, company_id: str, year: str) -> Dict[str, Any]:
         """Fetch all financial data for a company-year combination."""
@@ -285,9 +354,18 @@ class RatioEngine:
         ratios['net_profit_margin_pct'] = self.net_profit_margin(
             pl.get('net_profit'), pl.get('sales')
         )
-        ratios['operating_profit_margin_pct'] = self.operating_profit_margin(
+        computed_opm = self.operating_profit_margin(
             pl.get('operating_profit'), pl.get('sales')
         )
+        ratios['operating_profit_margin_pct'] = computed_opm
+
+        # OPM cross-check against opm_percentage field
+        source_opm = pl.get('opm_percentage')
+        if computed_opm is not None and source_opm is not None:
+            if abs(computed_opm - source_opm) > 1.0:
+                self.log_edge_case(company_id, year, 'OPM',
+                    f'Cross-check mismatch: computed={computed_opm:.2f}%, source={source_opm:.2f}%',
+                    computed_opm)
         ratios['return_on_equity_pct'] = self.return_on_equity(
             pl.get('net_profit'), bs.get('equity_capital'), bs.get('reserves')
         )
@@ -310,6 +388,28 @@ class RatioEngine:
         ratios['interest_coverage'] = self.interest_coverage(
             pl.get('operating_profit'), pl.get('other_income'), pl.get('interest')
         )
+
+        # ICR label for display
+        icr = ratios['interest_coverage']
+        if icr == 999.0:
+            ratios['icr_label'] = 'Debt Free'
+        elif icr is not None:
+            ratios['icr_label'] = str(round(icr, 2))
+        else:
+            ratios['icr_label'] = None
+
+        # ICR warning flag
+        if icr is not None and icr != 999.0 and icr < 1.5:
+            ratios['icr_warning_flag'] = 1
+        else:
+            ratios['icr_warning_flag'] = 0
+
+        # High leverage flag (D/E > 5 for non-Financials)
+        de = ratios['debt_to_equity']
+        if de is not None and de > 5 and sector and 'Financial' not in sector:
+            ratios['high_leverage_flag'] = 1
+        else:
+            ratios['high_leverage_flag'] = 0
         
         # Net Debt
         ratios['net_debt_cr'] = self.net_debt(
@@ -334,12 +434,23 @@ class RatioEngine:
             cf.get('operating_activity'), cf.get('investing_activity')
         )
         ratios['cash_from_operations_cr'] = cf.get('operating_activity')
-        
+
+        # CapEx intensity classification
+        ratios['capex_cr'] = cf.get('investing_activity')
+        ratios['capex_intensity_classification'] = self.capex_intensity_classification(
+            cf.get('investing_activity'), pl.get('sales')
+        )
+
         # CFO / PAT ratio
         ratios['cfo_pat_ratio'] = self.cfo_pat_ratio(
             cf.get('operating_activity'), pl.get('net_profit')
         )
-        
+
+        # CFO Quality Score (5-year average)
+        cfo_score = self.cfo_quality_score(company_id, year)
+        ratios['cfo_quality_score'] = cfo_score
+        ratios['cfo_quality_classification'] = self.cfo_quality_classification(cfo_score)
+
         # FCF Conversion Rate
         ratios['fcf_conversion_rate_pct'] = self.fcf_conversion_rate(
             ratios['free_cash_flow_cr'], pl.get('operating_profit')
@@ -379,32 +490,84 @@ class RatioEngine:
         # Initialize CAGR fields (will be computed separately)
         ratios['revenue_cagr_3yr'] = None
         ratios['revenue_cagr_5yr'] = None
+        ratios['revenue_cagr_5yr_flag'] = None
         ratios['pat_cagr_3yr'] = None
         ratios['pat_cagr_5yr'] = None
+        ratios['pat_cagr_5yr_flag'] = None
+        ratios['eps_cagr_3yr'] = None
+        ratios['eps_cagr_5yr'] = None
+        ratios['eps_cagr_10yr'] = None
+        ratios['eps_cagr_5yr_flag'] = None
+
+        # Initialize composite quality score
+        ratios['composite_quality_score'] = None
+
+        # Compute composite quality score (0-100 scale)
+        # Based on ROE, ROCE, CFO Quality, D/E, and Revenue CAGR
+        score_components = []
+
+        # ROE contribution (0-25 points)
+        roe = ratios['return_on_equity_pct']
+        if roe is not None and roe > 0:
+            score_components.append(min(roe / 20 * 25, 25))  # 20% ROE = 25 points
+
+        # ROCE contribution (0-25 points)
+        roce = ratios['return_on_capital_pct']
+        if roce is not None and roce > 0:
+            score_components.append(min(roce / 15 * 25, 25))  # 15% ROCE = 25 points
+
+        # CFO Quality contribution (0-20 points)
+        cfo_quality = ratios['cfo_quality_score']
+        if cfo_quality is not None:
+            if cfo_quality > 1.0:
+                score_components.append(20)  # High Quality
+            elif cfo_quality >= 0.5:
+                score_components.append(10)  # Moderate
+            else:
+                score_components.append(0)  # Accrual Risk
+
+        # Leverage contribution (0-20 points, lower D/E is better)
+        de = ratios['debt_to_equity']
+        if de is not None:
+            if de <= 0.5:
+                score_components.append(20)
+            elif de <= 1.0:
+                score_components.append(15)
+            elif de <= 2.0:
+                score_components.append(10)
+            else:
+                score_components.append(5)
+
+        # Growth contribution (0-10 points)
+        revenue_cagr = ratios.get('revenue_cagr_5yr')
+        if revenue_cagr is not None and revenue_cagr > 0:
+            score_components.append(min(revenue_cagr / 10 * 10, 10))  # 10% CAGR = 10 points
+
+        if score_components:
+            ratios['composite_quality_score'] = sum(score_components)
         
         return ratios
     
     def compute_cagr_for_company(self, company_id: str, current_year: str) -> Dict[str, Any]:
-        """Compute 3-year and 5-year CAGR for revenue and PAT for a company."""
+        """Compute 3-year, 5-year, and 10-year CAGR for revenue, PAT, and EPS for a company."""
         cursor = self.conn.cursor()
-        
-        # Get historical sales and net profit data
+
+        # Get historical sales, net profit, and EPS data
         cursor.execute("""
-            SELECT year, sales, net_profit 
-            FROM profitandloss 
-            WHERE company_id = ? 
+            SELECT year, sales, net_profit, eps
+            FROM profitandloss
+            WHERE company_id = ?
             ORDER BY year DESC
         """, (company_id,))
         historical_data = cursor.fetchall()
-        
+
         if len(historical_data) < 2:
             return {
-                'revenue_cagr_3yr': None,
-                'revenue_cagr_5yr': None,
-                'pat_cagr_3yr': None,
-                'pat_cagr_5yr': None
+                'revenue_cagr_3yr': None, 'revenue_cagr_5yr': None, 'revenue_cagr_5yr_flag': None,
+                'pat_cagr_3yr': None, 'pat_cagr_5yr': None, 'pat_cagr_5yr_flag': None,
+                'eps_cagr_3yr': None, 'eps_cagr_5yr': None, 'eps_cagr_10yr': None, 'eps_cagr_5yr_flag': None
             }
-        
+
         # Convert to list for easier indexing
         data_list = [dict(row) for row in historical_data]
         
@@ -414,44 +577,69 @@ class RatioEngine:
         # Compute 3-year CAGR
         revenue_cagr_3yr, revenue_flag_3yr = None, None
         pat_cagr_3yr, pat_flag_3yr = None, None
-        
+        eps_cagr_3yr, eps_flag_3yr = None, None
+
         if current_idx + 2 < len(data_list):
             start_sales = data_list[current_idx + 2]['sales']
             end_sales = data_list[current_idx]['sales']
             revenue_cagr_3yr, revenue_flag_3yr = self.calculate_cagr(start_sales, end_sales, 3)
-            
+
             start_pat = data_list[current_idx + 2]['net_profit']
             end_pat = data_list[current_idx]['net_profit']
             pat_cagr_3yr, pat_flag_3yr = self.calculate_cagr(start_pat, end_pat, 3)
-        
+
+            start_eps = data_list[current_idx + 2]['eps']
+            end_eps = data_list[current_idx]['eps']
+            eps_cagr_3yr, eps_flag_3yr = self.calculate_cagr(start_eps, end_eps, 3)
+
         # Compute 5-year CAGR
         revenue_cagr_5yr, revenue_flag_5yr = None, None
         pat_cagr_5yr, pat_flag_5yr = None, None
-        
+        eps_cagr_5yr, eps_flag_5yr = None, None
+
         if current_idx + 4 < len(data_list):
             start_sales = data_list[current_idx + 4]['sales']
             end_sales = data_list[current_idx]['sales']
             revenue_cagr_5yr, revenue_flag_5yr = self.calculate_cagr(start_sales, end_sales, 5)
-            
+
             start_pat = data_list[current_idx + 4]['net_profit']
             end_pat = data_list[current_idx]['net_profit']
             pat_cagr_5yr, pat_flag_5yr = self.calculate_cagr(start_pat, end_pat, 5)
-        
-        # Log turnaround flags
-        if revenue_flag_3yr == 'TURNAROUND':
-            self.log_edge_case(company_id, current_year, 'revenue_cagr_3yr', 'TURNAROUND')
-        if pat_flag_3yr == 'TURNAROUND':
-            self.log_edge_case(company_id, current_year, 'pat_cagr_3yr', 'TURNAROUND')
-        if revenue_flag_5yr == 'TURNAROUND':
-            self.log_edge_case(company_id, current_year, 'revenue_cagr_5yr', 'TURNAROUND')
-        if pat_flag_5yr == 'TURNAROUND':
-            self.log_edge_case(company_id, current_year, 'pat_cagr_5yr', 'TURNAROUND')
-        
+
+            start_eps = data_list[current_idx + 4]['eps']
+            end_eps = data_list[current_idx]['eps']
+            eps_cagr_5yr, eps_flag_5yr = self.calculate_cagr(start_eps, end_eps, 5)
+
+        # Compute 10-year CAGR (EPS only)
+        eps_cagr_10yr, eps_flag_10yr = None, None
+
+        if current_idx + 9 < len(data_list):
+            start_eps = data_list[current_idx + 9]['eps']
+            end_eps = data_list[current_idx]['eps']
+            eps_cagr_10yr, eps_flag_10yr = self.calculate_cagr(start_eps, end_eps, 10)
+
+        # Log all CAGR edge case flags
+        for metric, flag in [('revenue_cagr_3yr', revenue_flag_3yr),
+                             ('pat_cagr_3yr', pat_flag_3yr),
+                             ('eps_cagr_3yr', eps_flag_3yr),
+                             ('revenue_cagr_5yr', revenue_flag_5yr),
+                             ('pat_cagr_5yr', pat_flag_5yr),
+                             ('eps_cagr_5yr', eps_flag_5yr),
+                             ('eps_cagr_10yr', eps_flag_10yr)]:
+            if flag and flag != 'INSUFFICIENT':
+                self.log_edge_case(company_id, current_year, metric, flag)
+
         return {
             'revenue_cagr_3yr': revenue_cagr_3yr,
             'revenue_cagr_5yr': revenue_cagr_5yr,
+            'revenue_cagr_5yr_flag': revenue_flag_5yr,
             'pat_cagr_3yr': pat_cagr_3yr,
-            'pat_cagr_5yr': pat_cagr_5yr
+            'pat_cagr_5yr': pat_cagr_5yr,
+            'pat_cagr_5yr_flag': pat_flag_5yr,
+            'eps_cagr_3yr': eps_cagr_3yr,
+            'eps_cagr_5yr': eps_cagr_5yr,
+            'eps_cagr_10yr': eps_cagr_10yr,
+            'eps_cagr_5yr_flag': eps_flag_5yr
         }
     
     def compute_all_ratios(self):
@@ -486,40 +674,51 @@ class RatioEngine:
         """Save computed ratios to financial_ratios table."""
         self.connect()
         cursor = self.conn.cursor()
-        
+
         # Clear existing ratios
         cursor.execute("DELETE FROM financial_ratios")
-        
+
         # Insert new ratios
         for ratio in ratios:
             cursor.execute("""
                 INSERT INTO financial_ratios (
                     id, company_id, year, net_profit_margin_pct, operating_profit_margin_pct,
                     return_on_equity_pct, return_on_capital_pct, return_on_assets_pct,
-                    debt_to_equity, interest_coverage, asset_turnover,
-                    free_cash_flow_cr, capex_cr, earnings_per_share, book_value_per_share,
-                    dividend_payout_ratio_pct, total_debt_cr, net_debt_cr, net_debt_ebitda,
-                    working_capital_days, cash_from_operations_cr, cfo_pat_ratio,
+                    debt_to_equity, interest_coverage, icr_label, icr_warning_flag, high_leverage_flag,
+                    asset_turnover, free_cash_flow_cr, capex_cr, capex_intensity_classification,
+                    earnings_per_share, book_value_per_share, dividend_payout_ratio_pct,
+                    total_debt_cr, net_debt_cr, net_debt_ebitda, working_capital_days,
+                    cash_from_operations_cr, cfo_pat_ratio, cfo_quality_score, cfo_quality_classification,
                     fcf_conversion_rate_pct, capital_allocation_pattern,
-                    revenue_cagr_3yr, revenue_cagr_5yr, pat_cagr_3yr, pat_cagr_5yr
-                ) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    revenue_cagr_3yr, revenue_cagr_5yr, revenue_cagr_5yr_flag,
+                    pat_cagr_3yr, pat_cagr_5yr, pat_cagr_5yr_flag,
+                    eps_cagr_3yr, eps_cagr_5yr, eps_cagr_10yr, eps_cagr_5yr_flag,
+                    composite_quality_score
+                ) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 ratio['company_id'], ratio['year'],
                 ratio['net_profit_margin_pct'], ratio['operating_profit_margin_pct'],
                 ratio['return_on_equity_pct'], ratio['return_on_capital_pct'],
                 ratio['return_on_assets_pct'], ratio['debt_to_equity'],
-                ratio['interest_coverage'], ratio['asset_turnover'],
-                ratio['free_cash_flow_cr'], ratio['capex_cr'],
+                ratio['interest_coverage'], ratio['icr_label'],
+                ratio['icr_warning_flag'], ratio['high_leverage_flag'],
+                ratio['asset_turnover'], ratio['free_cash_flow_cr'],
+                ratio['capex_cr'], ratio['capex_intensity_classification'],
                 ratio['earnings_per_share'], ratio['book_value_per_share'],
                 ratio['dividend_payout_ratio_pct'], ratio['total_debt_cr'],
                 ratio['net_debt_cr'], ratio['net_debt_ebitda'],
                 ratio['working_capital_days'], ratio['cash_from_operations_cr'],
-                ratio['cfo_pat_ratio'], ratio['fcf_conversion_rate_pct'],
+                ratio['cfo_pat_ratio'], ratio['cfo_quality_score'],
+                ratio['cfo_quality_classification'], ratio['fcf_conversion_rate_pct'],
                 ratio['capital_allocation_pattern'],
                 ratio['revenue_cagr_3yr'], ratio['revenue_cagr_5yr'],
-                ratio['pat_cagr_3yr'], ratio['pat_cagr_5yr']
+                ratio['revenue_cagr_5yr_flag'], ratio['pat_cagr_3yr'],
+                ratio['pat_cagr_5yr'], ratio['pat_cagr_5yr_flag'],
+                ratio['eps_cagr_3yr'], ratio['eps_cagr_5yr'],
+                ratio['eps_cagr_10yr'], ratio['eps_cagr_5yr_flag'],
+                ratio['composite_quality_score']
             ))
-        
+
         self.conn.commit()
         self.close()
     
@@ -527,20 +726,91 @@ class RatioEngine:
         """Write edge cases to log file."""
         import os
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        
+
         with open(output_path, 'w') as f:
             f.write("timestamp,company_id,year,metric,issue,value\n")
             for case in self.edge_cases:
                 f.write(f"{case['timestamp']},{case['company_id']},{case['year']},"
                        f"{case['metric']},{case['issue']},{case['value']}\n")
 
+    def write_capital_allocation_csv(self, ratios: list, output_path: str = "output/capital_allocation.csv"):
+        """Generate capital allocation CSV file."""
+        import os
+        import csv
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+        with open(output_path, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['company_id', 'year', 'cfo_sign', 'cfi_sign', 'cff_sign', 'pattern_label'])
+
+            for ratio in ratios:
+                # Get cash flow signs
+                cfo = ratio.get('cash_from_operations_cr')
+                cfi = ratio.get('capex_cr')  # Using capex_cr as proxy for investing activity
+                cff = None  # Financing activity not directly stored, would need to fetch
+
+                # Determine signs
+                cfo_sign = '+' if (cfo or 0) >= 0 else '-'
+                cfi_sign = '+' if (cfi or 0) >= 0 else '-'
+                cff_sign = '+'  # Default since we don't have financing activity
+
+                pattern = ratio.get('capital_allocation_pattern', 'Unknown')
+
+                writer.writerow([
+                    ratio['company_id'],
+                    ratio['year'],
+                    cfo_sign,
+                    cfi_sign,
+                    cff_sign,
+                    pattern
+                ])
+
+    def cross_check_roce_roe(self, ratios: list):
+        """Cross-check computed ROCE and ROE against companies.xlsx values."""
+        self.connect()
+        cursor = self.conn.cursor()
+
+        # Get companies table data
+        cursor.execute("SELECT id, roce_percentage, roe_percentage FROM companies")
+        companies_data = {row[0]: {'roce': row[1], 'roe': row[2]} for row in cursor.fetchall()}
+
+        self.close()
+
+        for ratio in ratios:
+            company_id = ratio['company_id']
+            if company_id in companies_data:
+                # Cross-check ROCE
+                computed_roce = ratio.get('return_on_capital_pct')
+                source_roce = companies_data[company_id]['roce']
+                if computed_roce is not None and source_roce is not None:
+                    if abs(computed_roce - source_roce) > 5.0:
+                        self.log_edge_case(company_id, ratio['year'], 'ROCE',
+                            f'Cross-check mismatch: computed={computed_roce:.2f}%, source={source_roce:.2f}%',
+                            computed_roce)
+
+                # Cross-check ROE
+                computed_roe = ratio.get('return_on_equity_pct')
+                source_roe = companies_data[company_id]['roe']
+                if computed_roe is not None and source_roe is not None:
+                    if abs(computed_roe - source_roe) > 5.0:
+                        self.log_edge_case(company_id, ratio['year'], 'ROE',
+                            f'Cross-check mismatch: computed={computed_roe:.2f}%, source={source_roe:.2f}%',
+                            computed_roe)
+
 
 def main():
     """Main entry point for ratio computation."""
     engine = RatioEngine()
     ratios = engine.compute_all_ratios()
+
+    # Cross-check ROCE and ROE against source data
+    engine.cross_check_roce_roe(ratios)
+
     engine.save_ratios_to_db(ratios)
-    
+
+    # Generate capital allocation CSV
+    engine.write_capital_allocation_csv(ratios)
+
     if engine.edge_cases:
         engine.write_edge_cases_log()
         print(f"Computed {len(ratios)} ratio records. {len(engine.edge_cases)} edge cases logged.")

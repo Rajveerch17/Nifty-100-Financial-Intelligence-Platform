@@ -1,6 +1,7 @@
 # Nifty 100 Financial Intelligence Platform
 
 Sprint 1 deliverable: Excel → SQLite ETL pipeline for 12 datasets and 12 database tables.
+Sprint 2 deliverable: Financial Ratio Engine computing 50+ KPIs for all company-year combinations.
 
 ## Module 1 Sprint 1 Status: ✅ COMPLETED
 
@@ -14,6 +15,29 @@ All Sprint 1 tasks have been successfully completed and verified:
 - ✅ Foreign key integrity verified
 - ✅ Exploratory SQL queries validated
 
+## Module 2 Sprint 2 Status: ✅ COMPLETED
+
+All Sprint 2 tasks have been successfully completed and verified:
+- ✅ Financial Ratio Engine with 50+ KPIs computed for all company-year combinations
+- ✅ financial_ratios table: 1,164 records, 41 KPI columns
+- ✅ Profitability ratios: Net Profit Margin, OPM, ROE, ROCE, ROA
+- ✅ Leverage ratios: D/E, Interest Coverage, Net Debt, Net Debt/EBITDA
+- ✅ Efficiency ratios: Asset Turnover, Working Capital Days
+- ✅ Cash flow ratios: Free Cash Flow, CFO/PAT, FCF Conversion Rate
+- ✅ Capital allocation patterns with 8-pattern classification
+- ✅ CAGR engine (3yr, 5yr, 10yr) for Revenue, PAT, EPS
+- ✅ CAGR edge case flags: TURNAROUND, DECLINE_TO_LOSS, BOTH_NEGATIVE, ZERO_BASE, INSUFFICIENT
+- ✅ CFO Quality Score (5-year average) with classification
+- ✅ CapEx Intensity classification
+- ✅ Composite Quality Score (0-100 scale)
+- ✅ OPM cross-check against source data (logs if difference > 1%)
+- ✅ ROCE/ROE cross-check against companies.xlsx (logs anomalies > 5%)
+- ✅ Flags: high_leverage_flag, icr_label, icr_warning_flag
+- ✅ All 42 unit tests passing
+- ✅ 2,073 edge cases logged to output/ratio_edge_cases.log
+- ✅ output/capital_allocation.csv generated
+- ✅ Manual spot-check verification passed for 3 companies
+
 ## Quick start
 
 ```bash
@@ -23,6 +47,9 @@ pip install -r requirements.txt
 
 # Load data into database
 python -m src.etl.loader      # or: .\load.ps1 (Windows script)
+
+# Compute financial ratios
+python -m src.kpi.ratio_engine
 
 # Run tests
 python -m pytest tests/ -v    # or: .\test.ps1 (Windows script)
@@ -40,11 +67,13 @@ python -m pytest tests/ -v    # or: .\test.ps1 (Windows script)
 | `data/raw/` | 7 core Excel files (read-only) |
 | `data/supporting/` | 5 supplementary Excel files |
 | `data/nifty100.db` | SQLite database (generated) |
-| `db/schema.sql` | 12-table schema with FK constraints |
+| `db/schema.sql` | 13-table schema with FK constraints (12 base + financial_ratios) |
 | `src/etl/` | `loader.py`, `validator.py`, `normaliser.py` |
-| `output/` | `load_audit.csv`, `validation_failures.csv` |
+| `src/kpi/` | `ratio_engine.py` - Financial KPI computation engine |
+| `output/` | `load_audit.csv`, `validation_failures.csv`, `ratio_edge_cases.log`, `capital_allocation.csv` |
 | `notebooks/exploratory_queries.sql` | 10 SQL sanity-check queries |
-| `tests/etl/` | 35+ unit tests |
+| `tests/etl/` | 35+ unit tests for ETL pipeline |
+| `tests/kpi/` | 42 unit tests for ratio engine |
 
 ## Load pipeline
 
@@ -66,6 +95,25 @@ PRAGMA foreign_key_check;                -- 0 rows
 
 ```bash
 python -m pytest tests/ -v
+```
+
+## Sprint 2 exit checks
+
+```sql
+sqlite3 data/nifty100.db
+SELECT COUNT(*) FROM financial_ratios;   -- 1164
+PRAGMA table_info(financial_ratios);     -- 41 columns
+SELECT COUNT(*) FROM financial_ratios WHERE composite_quality_score IS NOT NULL;  -- 1161
+```
+
+```bash
+python -m pytest tests/kpi/test_ratios.py -v
+```
+
+```bash
+# Verify output files
+ls output/
+# Should show: load_audit.csv, validation_failures.csv, ratio_edge_cases.log, capital_allocation.csv
 ```
 
 ## Data note

@@ -1,0 +1,258 @@
+2026-07-07 12:10:48,820 - __main__ - INFO - 
+================================================================================
+2026-07-07 12:10:48,821 - __main__ - INFO - SPRINT 3 EXECUTION - SCREENER & PEER COMPARISON
+2026-07-07 12:10:48,821 - __main__ - INFO - ================================================================================
+2026-07-07 12:10:48,821 - __main__ - INFO - Start time: 2026-07-07 12:10:48
+2026-07-07 12:10:48,821 - __main__ - INFO - 
+================================================================================
+2026-07-07 12:10:48,821 - __main__ - INFO - DAY 15: FILTER ENGINE CORE
+2026-07-07 12:10:48,822 - __main__ - INFO - ================================================================================
+2026-07-07 12:10:48,834 - src.screener.engine - INFO - Loaded screener config with 6 presets
+2026-07-07 12:10:48,864 - src.screener.engine - INFO - Loaded 1164 ratio records, 92 companies
+2026-07-07 12:10:48,864 - src.screener.engine - INFO - ScreenerEngine initialized with 1164 companies
+2026-07-07 12:10:48,868 - __main__ - INFO -   - Config loaded with 15 filter definitions
+2026-07-07 12:10:48,868 - __main__ - INFO -   - 6 preset templates configured
+2026-07-07 12:10:48,868 - __main__ - INFO -   - 1164 financial ratio records loaded
+2026-07-07 12:10:48,868 - __main__ - INFO - 
+================================================================================
+2026-07-07 12:10:48,869 - __main__ - INFO - DAY 16-17: 6 PRESET SCREENERS & COMPOSITE SCORING
+2026-07-07 12:10:48,869 - __main__ - INFO - ================================================================================
+2026-07-07 12:10:48,869 - src.screener.engine - INFO - Applying preset: quality_compounder
+2026-07-07 12:10:48,872 - src.screener.engine - INFO - Screening 1 companies for year 2024-09
+2026-07-07 12:10:48,881 - src.screener.engine - INFO - After filters: 1 companies remain
+2026-07-07 12:10:48,883 - src.screener.engine - ERROR - Error applying preset quality_compounder: 'return_on_capital_employed_pct'
+2026-07-07 12:10:48,883 - src.screener.engine - INFO - Applying preset: value_pick
+2026-07-07 12:10:48,884 - src.screener.engine - INFO - Screening 1 companies for year 2024-09
+2026-07-07 12:10:48,884 - src.screener.engine - WARNING - Column pe_ratio not found in DataFrame
+2026-07-07 12:10:48,884 - src.screener.engine - WARNING - Column pb_ratio not found in DataFrame
+2026-07-07 12:10:48,886 - src.screener.engine - WARNING - Column dividend_yield_pct not found in DataFrame
+2026-07-07 12:10:48,888 - src.screener.engine - INFO - After filters: 1 companies remain
+2026-07-07 12:10:48,889 - src.screener.engine - ERROR - Error applying preset value_pick: 'return_on_capital_employed_pct'
+2026-07-07 12:10:48,889 - src.screener.engine - INFO - Applying preset: growth_accelerator
+2026-07-07 12:10:48,890 - src.screener.engine - INFO - Screening 1 companies for year 2024-09
+2026-07-07 12:10:48,892 - src.screener.engine - INFO - After filters: 1 companies remain
+2026-07-07 12:10:48,894 - src.screener.engine - ERROR - Error applying preset growth_accelerator: 'return_on_capital_employed_pct'
+2026-07-07 12:10:48,894 - src.screener.engine - INFO - Applying preset: dividend_champion
+2026-07-07 12:10:48,895 - src.screener.engine - INFO - Screening 1 companies for year 2024-09
+2026-07-07 12:10:48,895 - src.screener.engine - WARNING - Column dividend_yield_pct not found in DataFrame
+2026-07-07 12:10:48,896 - src.screener.engine - INFO - After filters: 1 companies remain
+2026-07-07 12:10:48,898 - src.screener.engine - ERROR - Error applying preset dividend_champion: 'return_on_capital_employed_pct'
+2026-07-07 12:10:48,898 - src.screener.engine - INFO - Applying preset: debt_free_blue_chip
+2026-07-07 12:10:48,899 - src.screener.engine - INFO - Screening 1 companies for year 2024-09
+2026-07-07 12:10:48,901 - src.screener.engine - WARNING - Column market_cap_crore not found in DataFrame
+2026-07-07 12:10:48,902 - src.screener.engine - INFO - After filters: 0 companies remain
+2026-07-07 12:10:48,903 - src.screener.engine - ERROR - Error applying preset debt_free_blue_chip: 'return_on_capital_employed_pct'
+2026-07-07 12:10:48,903 - src.screener.engine - INFO - Applying preset: turnaround_watch
+2026-07-07 12:10:48,903 - src.screener.engine - INFO - Screening 1 companies for year 2024-09
+2026-07-07 12:10:48,905 - src.screener.engine - INFO - After filters: 1 companies remain
+2026-07-07 12:10:48,906 - src.screener.engine - ERROR - Error applying preset turnaround_watch: 'return_on_capital_employed_pct'
+2026-07-07 12:10:49,215 - src.screener.engine - ERROR - Failed to export Excel: At least one sheet must be visible
+2026-07-07 12:10:49,222 - __main__ - ERROR - Full traceback:
+Traceback (most recent call last):
+  File "C:\Users\rajve\Nifty 100 Financial Intelligence Platform\sprint3_execute.py", line 232, in main
+    preset_results = day_16_preset_screeners(screener_engine)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rajve\Nifty 100 Financial Intelligence Platform\sprint3_execute.py", line 82, in day_16_preset_screeners
+    engine.export_to_excel(results, "output/screener_output.xlsx")
+  File "C:\Users\rajve\Nifty 100 Financial Intelligence Platform\src\screener\engine.py", line 306, in export_to_excel
+    with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rajve\anaconda3\Lib\site-packages\pandas\io\excel\_base.py", line 1353, in __exit__
+    self.close()
+  File "C:\Users\rajve\anaconda3\Lib\site-packages\pandas\io\excel\_base.py", line 1357, in close
+    self._save()
+  File "C:\Users\rajve\anaconda3\Lib\site-packages\pandas\io\excel\_openpyxl.py", line 110, in _save
+    self.book.save(self._handles.handle)
+  File "C:\Users\rajve\anaconda3\Lib\site-packages\openpyxl\workbook\workbook.py", line 386, in save
+    save_workbook(self, filename)
+  File "C:\Users\rajve\anaconda3\Lib\site-packages\openpyxl\writer\excel.py", line 294, in save_workbook
+    writer.save()
+  File "C:\Users\rajve\anaconda3\Lib\site-packages\openpyxl\writer\excel.py", line 275, in save
+    self.write_data()
+  File "C:\Users\rajve\anaconda3\Lib\site-packages\openpyxl\writer\excel.py", line 89, in write_data
+    archive.writestr(ARC_WORKBOOK, writer.write())
+                                   ^^^^^^^^^^^^^^
+  File "C:\Users\rajve\anaconda3\Lib\site-packages\openpyxl\workbook\_writer.py", line 150, in write
+    self.write_views()
+  File "C:\Users\rajve\anaconda3\Lib\site-packages\openpyxl\workbook\_writer.py", line 137, in write_views
+    active = get_active_sheet(self.wb)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rajve\anaconda3\Lib\site-packages\openpyxl\workbook\_writer.py", line 35, in get_active_sheet
+    raise IndexError("At least one sheet must be visible")
+IndexError: At least one sheet must be visible
+2026-07-07 12:17:25,668 - __main__ - INFO - 
+================================================================================
+2026-07-07 12:17:25,668 - __main__ - INFO - SPRINT 3 EXECUTION - SCREENER & PEER COMPARISON
+2026-07-07 12:17:25,668 - __main__ - INFO - ================================================================================
+2026-07-07 12:17:25,669 - __main__ - INFO - Start time: 2026-07-07 12:17:25
+2026-07-07 12:17:25,669 - __main__ - INFO - 
+================================================================================
+2026-07-07 12:17:25,669 - __main__ - INFO - DAY 15: FILTER ENGINE CORE
+2026-07-07 12:17:25,669 - __main__ - INFO - ================================================================================
+2026-07-07 12:17:25,682 - src.screener.engine - INFO - Loaded screener config with 6 presets
+2026-07-07 12:17:25,697 - src.screener.engine - INFO - Loaded 1164 ratio records, 92 companies
+2026-07-07 12:17:25,697 - src.screener.engine - INFO - ScreenerEngine initialized with 1164 companies
+2026-07-07 12:17:25,698 - __main__ - INFO - [OK] Filter engine initialized
+2026-07-07 12:17:25,698 - __main__ - INFO -   - Config loaded with 15 filter definitions
+2026-07-07 12:17:25,698 - __main__ - INFO -   - 6 preset templates configured
+2026-07-07 12:17:25,698 - __main__ - INFO -   - 1164 financial ratio records loaded
+2026-07-07 12:17:25,698 - __main__ - INFO -   - Available columns: ['id', 'company_id', 'year', 'net_profit_margin_pct', 'operating_profit_margin_pct', 'return_on_equity_pct', 'return_on_capital_pct', 'return_on_assets_pct']...
+2026-07-07 12:17:25,698 - __main__ - INFO - 
+================================================================================
+2026-07-07 12:17:25,698 - __main__ - INFO - DAY 16-17: 6 PRESET SCREENERS & COMPOSITE SCORING
+2026-07-07 12:17:25,698 - __main__ - INFO - ================================================================================
+2026-07-07 12:17:25,698 - src.screener.engine - INFO - Applying preset: quality_compounder
+2026-07-07 12:17:25,699 - src.screener.engine - INFO - Screening 1 companies for year 2024-09
+2026-07-07 12:17:25,702 - src.screener.engine - INFO - After filters: 1 companies remain
+2026-07-07 12:17:25,705 - src.screener.engine - ERROR - Error applying preset quality_compounder: 'return_on_capital_employed_pct'
+2026-07-07 12:17:25,705 - src.screener.engine - INFO - Applying preset: value_pick
+2026-07-07 12:17:25,705 - src.screener.engine - INFO - Screening 1 companies for year 2024-09
+2026-07-07 12:17:25,705 - src.screener.engine - WARNING - Column pe_ratio not found in DataFrame
+2026-07-07 12:17:25,706 - src.screener.engine - WARNING - Column pb_ratio not found in DataFrame
+2026-07-07 12:17:25,707 - src.screener.engine - WARNING - Column dividend_yield_pct not found in DataFrame
+2026-07-07 12:17:25,708 - src.screener.engine - INFO - After filters: 1 companies remain
+2026-07-07 12:17:25,710 - src.screener.engine - ERROR - Error applying preset value_pick: 'return_on_capital_employed_pct'
+2026-07-07 12:17:25,710 - src.screener.engine - INFO - Applying preset: growth_accelerator
+2026-07-07 12:17:25,710 - src.screener.engine - INFO - Screening 1 companies for year 2024-09
+2026-07-07 12:17:25,712 - src.screener.engine - INFO - After filters: 1 companies remain
+2026-07-07 12:17:25,714 - src.screener.engine - ERROR - Error applying preset growth_accelerator: 'return_on_capital_employed_pct'
+2026-07-07 12:17:25,714 - src.screener.engine - INFO - Applying preset: dividend_champion
+2026-07-07 12:17:25,715 - src.screener.engine - INFO - Screening 1 companies for year 2024-09
+2026-07-07 12:17:25,715 - src.screener.engine - WARNING - Column dividend_yield_pct not found in DataFrame
+2026-07-07 12:17:25,717 - src.screener.engine - INFO - After filters: 1 companies remain
+2026-07-07 12:17:25,718 - src.screener.engine - ERROR - Error applying preset dividend_champion: 'return_on_capital_employed_pct'
+2026-07-07 12:17:25,719 - src.screener.engine - INFO - Applying preset: debt_free_blue_chip
+2026-07-07 12:17:25,719 - src.screener.engine - INFO - Screening 1 companies for year 2024-09
+2026-07-07 12:17:25,722 - src.screener.engine - WARNING - Column market_cap_crore not found in DataFrame
+2026-07-07 12:17:25,722 - src.screener.engine - INFO - After filters: 0 companies remain
+2026-07-07 12:17:25,723 - src.screener.engine - ERROR - Error applying preset debt_free_blue_chip: 'return_on_capital_employed_pct'
+2026-07-07 12:17:25,724 - src.screener.engine - INFO - Applying preset: turnaround_watch
+2026-07-07 12:17:25,724 - src.screener.engine - INFO - Screening 1 companies for year 2024-09
+2026-07-07 12:17:25,726 - src.screener.engine - INFO - After filters: 1 companies remain
+2026-07-07 12:17:25,728 - src.screener.engine - ERROR - Error applying preset turnaround_watch: 'return_on_capital_employed_pct'
+2026-07-07 12:17:25,728 - __main__ - INFO - [OK] Generated 0/0 preset screeners:
+2026-07-07 12:17:25,728 - __main__ - WARNING - [WARN] No presets generated successfully.
+2026-07-07 12:17:25,728 - __main__ - WARNING -   - Available columns: ['id', 'company_id', 'year', 'net_profit_margin_pct', 'operating_profit_margin_pct', 'return_on_equity_pct', 'return_on_capital_pct', 'return_on_assets_pct', 'debt_to_equity', 'interest_coverage', 'icr_label', 'icr_warning_flag', 'high_leverage_flag', 'asset_turnover', 'free_cash_flow_cr', 'capex_cr', 'capex_intensity_classification', 'earnings_per_share', 'book_value_per_share', 'dividend_payout_ratio_pct', 'total_debt_cr', 'net_debt_cr', 'net_debt_ebitda', 'working_capital_days', 'cash_from_operations_cr', 'cfo_pat_ratio', 'cfo_quality_score', 'cfo_quality_classification', 'fcf_conversion_rate_pct', 'capital_allocation_pattern', 'revenue_cagr_3yr', 'revenue_cagr_5yr', 'revenue_cagr_5yr_flag', 'pat_cagr_3yr', 'pat_cagr_5yr', 'pat_cagr_5yr_flag', 'eps_cagr_3yr', 'eps_cagr_5yr', 'eps_cagr_10yr', 'eps_cagr_5yr_flag', 'composite_quality_score']
+2026-07-07 12:17:25,728 - __main__ - WARNING -   - Check if required columns exist in database
+2026-07-07 12:17:25,728 - __main__ - INFO - 
+================================================================================
+2026-07-07 12:17:25,729 - __main__ - INFO - DAY 18: PEER PERCENTILE RANKINGS
+2026-07-07 12:17:25,729 - __main__ - INFO - ================================================================================
+2026-07-07 12:17:25,741 - src.analytics.peer - INFO - Loaded 1164 financial ratio records
+2026-07-07 12:17:25,741 - src.analytics.peer - INFO - PeerComparisonEngine initialized with 11 peer groups
+2026-07-07 12:17:25,741 - src.analytics.peer - INFO - Computing peer percentiles for year 2024-09
+2026-07-07 12:17:25,745 - src.analytics.peer - WARNING - Peer group Private Banks has no data for year 2024-09
+2026-07-07 12:17:25,745 - src.analytics.peer - WARNING - Peer group Public Banks has no data for year 2024-09
+2026-07-07 12:17:25,745 - src.analytics.peer - WARNING - Peer group IT Services has no data for year 2024-09
+2026-07-07 12:17:25,746 - src.analytics.peer - WARNING - Peer group Pharmaceuticals has no data for year 2024-09
+2026-07-07 12:17:25,746 - src.analytics.peer - WARNING - Peer group Automobiles has no data for year 2024-09
+2026-07-07 12:17:25,746 - src.analytics.peer - WARNING - Peer group Life Insurance has no data for year 2024-09
+2026-07-07 12:17:25,746 - src.analytics.peer - WARNING - Peer group Oil & Gas has no data for year 2024-09
+2026-07-07 12:17:25,746 - src.analytics.peer - WARNING - Peer group Power & Utilities has no data for year 2024-09
+2026-07-07 12:17:25,748 - src.analytics.peer - WARNING - Peer group Steel & Metals has no data for year 2024-09
+2026-07-07 12:17:25,748 - src.analytics.peer - WARNING - Peer group FMCG has no data for year 2024-09
+2026-07-07 12:17:25,748 - src.analytics.peer - WARNING - Peer group Consumer Finance has no data for year 2024-09
+2026-07-07 12:17:25,749 - src.analytics.peer - INFO - Computed 0 peer percentile ranks
+2026-07-07 12:17:25,749 - __main__ - INFO - [OK] Computed 0 peer percentile ranks
+2026-07-07 12:17:25,749 - __main__ - ERROR - [ERROR] Failed to compute peer rankings: 'peer_group'
+2026-07-07 12:17:25,749 - __main__ - ERROR - Detailed traceback:
+Traceback (most recent call last):
+  File "C:\Users\rajve\Nifty 100 Financial Intelligence Platform\sprint3_execute.py", line 129, in day_18_peer_rankings
+    logger.info(f"  - {len(df_percentiles['peer_group'].unique())} peer groups")
+                           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\rajve\anaconda3\Lib\site-packages\pandas\core\frame.py", line 4102, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rajve\anaconda3\Lib\site-packages\pandas\core\indexes\range.py", line 417, in get_loc
+    raise KeyError(key)
+KeyError: 'peer_group'
+2026-07-07 12:17:25,754 - __main__ - ERROR - [ERROR] Day 18 failed: 'peer_group'
+2026-07-07 12:17:25,754 - __main__ - INFO - 
+================================================================================
+2026-07-07 12:17:25,754 - __main__ - INFO - DAY 19: RADAR CHART GENERATION
+2026-07-07 12:17:25,754 - __main__ - INFO - ================================================================================
+2026-07-07 12:17:25,768 - src.analytics.charting - WARNING - No data found for HDFCBANK in 2024-09
+2026-07-07 12:17:25,768 - src.analytics.charting - WARNING - No data found for ICICIBANK in 2024-09
+2026-07-07 12:17:25,769 - src.analytics.charting - WARNING - No data found for AXISBANK in 2024-09
+2026-07-07 12:17:25,770 - src.analytics.charting - WARNING - No data found for KOTAKBANK in 2024-09
+2026-07-07 12:17:25,771 - src.analytics.charting - WARNING - No data found for INDUSINDBK in 2024-09
+2026-07-07 12:17:25,771 - src.analytics.charting - WARNING - No data found for SBIN in 2024-09
+2026-07-07 12:17:25,772 - src.analytics.charting - WARNING - No data found for BANKBARODA in 2024-09
+2026-07-07 12:17:25,773 - src.analytics.charting - WARNING - No data found for CANBK in 2024-09
+2026-07-07 12:17:25,773 - src.analytics.charting - WARNING - No data found for PNB in 2024-09
+2026-07-07 12:17:25,774 - src.analytics.charting - WARNING - No data found for TCS in 2024-09
+2026-07-07 12:17:25,775 - src.analytics.charting - WARNING - No data found for INFY in 2024-09
+2026-07-07 12:17:25,775 - src.analytics.charting - WARNING - No data found for HCLTECH in 2024-09
+2026-07-07 12:17:25,776 - src.analytics.charting - WARNING - No data found for TECHM in 2024-09
+2026-07-07 12:17:25,776 - src.analytics.charting - WARNING - No data found for LTIM in 2024-09
+2026-07-07 12:17:25,778 - src.analytics.charting - WARNING - No data found for SUNPHARMA in 2024-09
+2026-07-07 12:17:25,779 - src.analytics.charting - WARNING - No data found for CIPLA in 2024-09
+2026-07-07 12:17:25,780 - src.analytics.charting - WARNING - No data found for DRREDDY in 2024-09
+2026-07-07 12:17:25,780 - src.analytics.charting - WARNING - No data found for DIVISLAB in 2024-09
+2026-07-07 12:17:25,781 - src.analytics.charting - WARNING - No data found for TORNTPHARM in 2024-09
+2026-07-07 12:17:25,782 - src.analytics.charting - WARNING - No data found for MARUTI in 2024-09
+2026-07-07 12:17:25,783 - src.analytics.charting - WARNING - No data found for TATAMOTORS in 2024-09
+2026-07-07 12:17:25,784 - src.analytics.charting - WARNING - No data found for M&M in 2024-09
+2026-07-07 12:17:25,785 - src.analytics.charting - WARNING - No data found for BAJAJ-AUTO in 2024-09
+2026-07-07 12:17:25,785 - src.analytics.charting - WARNING - No data found for EICHERMOT in 2024-09
+2026-07-07 12:17:25,786 - src.analytics.charting - WARNING - No data found for HEROMOTOCO in 2024-09
+2026-07-07 12:17:25,787 - src.analytics.charting - WARNING - No data found for TVSMOTOR in 2024-09
+2026-07-07 12:17:25,788 - src.analytics.charting - WARNING - No data found for LICI in 2024-09
+2026-07-07 12:17:25,788 - src.analytics.charting - WARNING - No data found for HDFCLIFE in 2024-09
+2026-07-07 12:17:25,789 - src.analytics.charting - WARNING - No data found for SBILIFE in 2024-09
+2026-07-07 12:17:25,790 - src.analytics.charting - WARNING - No data found for ICICIPRULI in 2024-09
+2026-07-07 12:17:25,791 - src.analytics.charting - WARNING - No data found for RELIANCE in 2024-09
+2026-07-07 12:17:25,791 - src.analytics.charting - WARNING - No data found for ONGC in 2024-09
+2026-07-07 12:17:25,792 - src.analytics.charting - WARNING - No data found for BPCL in 2024-09
+2026-07-07 12:17:25,792 - src.analytics.charting - WARNING - No data found for IOC in 2024-09
+2026-07-07 12:17:25,793 - src.analytics.charting - WARNING - No data found for GAIL in 2024-09
+2026-07-07 12:17:25,794 - src.analytics.charting - WARNING - No data found for NTPC in 2024-09
+2026-07-07 12:17:25,795 - src.analytics.charting - WARNING - No data found for POWERGRID in 2024-09
+2026-07-07 12:17:25,795 - src.analytics.charting - WARNING - No data found for TATAPOWER in 2024-09
+2026-07-07 12:17:25,796 - src.analytics.charting - WARNING - No data found for ADANIPOWER in 2024-09
+2026-07-07 12:17:25,796 - src.analytics.charting - WARNING - No data found for NHPC in 2024-09
+2026-07-07 12:17:25,797 - src.analytics.charting - WARNING - No data found for JSWENERGY in 2024-09
+2026-07-07 12:17:25,798 - src.analytics.charting - WARNING - No data found for ADANIGREEN in 2024-09
+2026-07-07 12:17:25,799 - src.analytics.charting - WARNING - No data found for TATASTEEL in 2024-09
+2026-07-07 12:17:25,800 - src.analytics.charting - WARNING - No data found for JSWSTEEL in 2024-09
+2026-07-07 12:17:25,800 - src.analytics.charting - WARNING - No data found for JINDALSTEL in 2024-09
+2026-07-07 12:17:25,803 - src.analytics.charting - WARNING - No data found for HINDALCO in 2024-09
+2026-07-07 12:17:25,804 - src.analytics.charting - WARNING - No data found for HINDUNILVR in 2024-09
+2026-07-07 12:17:25,805 - src.analytics.charting - WARNING - No data found for ITC in 2024-09
+2026-07-07 12:17:25,806 - src.analytics.charting - WARNING - No data found for BRITANNIA in 2024-09
+2026-07-07 12:17:25,807 - src.analytics.charting - WARNING - No data found for DABUR in 2024-09
+2026-07-07 12:17:25,808 - src.analytics.charting - WARNING - No data found for NESTLEIND in 2024-09
+2026-07-07 12:17:25,808 - src.analytics.charting - WARNING - No data found for GODREJCP in 2024-09
+2026-07-07 12:17:25,809 - src.analytics.charting - WARNING - No data found for TATACONSUMER in 2024-09
+2026-07-07 12:17:25,810 - src.analytics.charting - WARNING - No data found for BAJFINANCE in 2024-09
+2026-07-07 12:17:25,811 - src.analytics.charting - WARNING - No data found for CHOLAFIN in 2024-09
+2026-07-07 12:17:25,811 - src.analytics.charting - WARNING - No data found for SHRIRAMFIN in 2024-09
+2026-07-07 12:17:25,811 - src.analytics.charting - INFO - Generated 0 radar charts
+2026-07-07 12:17:25,812 - __main__ - INFO - [OK] Generated 0 radar charts
+2026-07-07 12:17:25,812 - __main__ - INFO -   - Output directory: reports/radar_charts/
+2026-07-07 12:17:25,812 - __main__ - WARNING - [WARN] Skipping Day 20 - peer engine not initialized
+2026-07-07 12:17:25,812 - __main__ - INFO - 
+================================================================================
+2026-07-07 12:17:25,812 - __main__ - INFO - DAY 21: TESTS & VALIDATION
+2026-07-07 12:17:25,812 - __main__ - INFO - ================================================================================
+2026-07-07 12:17:25,812 - __main__ - INFO - [OK] screener_output.xlsx verified
+2026-07-07 12:17:25,812 - __main__ - WARNING - [WARN] peer_comparison.xlsx not found
+2026-07-07 12:17:25,813 - __main__ - INFO - [OK] Radar charts generated: 0 files
+2026-07-07 12:17:25,813 - __main__ - INFO - 
+--------------------------------------------------------------------------------
+2026-07-07 12:17:25,813 - __main__ - INFO - EXIT CRITERIA (Definition of Done)
+2026-07-07 12:17:25,813 - __main__ - INFO - --------------------------------------------------------------------------------
+2026-07-07 12:17:25,813 - __main__ - INFO -   [PASS]: 6 preset screeners generated
+2026-07-07 12:17:25,813 - __main__ - INFO -   [FAIL]: Peer comparison with 11 groups
+2026-07-07 12:17:25,814 - __main__ - INFO -   [FAIL]: Radar charts for all companies
+2026-07-07 12:17:25,814 - __main__ - INFO - 
+================================================================================
+2026-07-07 12:17:25,814 - __main__ - INFO - SPRINT 3 SUMMARY
+2026-07-07 12:17:25,814 - __main__ - INFO - ================================================================================
+2026-07-07 12:17:25,814 - __main__ - INFO - Execution completed: 2026-07-07 12:17:25
+2026-07-07 12:17:25,814 - __main__ - INFO - Status: [PARTIAL] SOME CRITERIA NOT MET
+2026-07-07 12:17:25,814 - __main__ - INFO - 
+Deliverables:
+2026-07-07 12:17:25,814 - __main__ - INFO -   - output/screener_output.xlsx (0 presets)
+2026-07-07 12:17:25,814 - __main__ - INFO -   - reports/radar_charts/ (0 charts)
+2026-07-07 12:17:25,814 - __main__ - INFO -   - config/screener_config.yaml

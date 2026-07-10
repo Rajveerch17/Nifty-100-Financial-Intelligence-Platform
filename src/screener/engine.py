@@ -44,6 +44,7 @@ class ScreenerEngine:
         self.config = self._load_config()
         self.df_ratios = None
         self.df_sectors = None
+        self.df_market_cap = None
         self._load_data()
         logger.info(f"ScreenerEngine initialized with {len(self.df_ratios)} companies")
     
@@ -55,7 +56,7 @@ class ScreenerEngine:
         return config
     
     def _load_data(self) -> None:
-        """Load financial_ratios and sectors tables from SQLite."""
+        """Load financial_ratios, sectors and market cap tables from SQLite."""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 self.df_ratios = pd.read_sql_query(
@@ -66,11 +67,27 @@ class ScreenerEngine:
                     "SELECT * FROM sectors",
                     conn
                 )
-            logger.info(f"Loaded {len(self.df_ratios)} ratio records, {len(self.df_sectors)} companies")
+                self.df_market_cap = pd.read_sql_query(
+                    "SELECT company_id, year, market_cap_crore, pe_ratio, pb_ratio, dividend_yield_pct FROM market_cap ORDER BY company_id, year",
+                    conn
+                )
+            logger.info(f"Loaded {len(self.df_ratios)} ratio records, {len(self.df_sectors)} companies, {len(self.df_market_cap)} market cap rows")
         except Exception as e:
             logger.error(f"Failed to load data: {e}")
             raise
     
+    @staticmethod
+    def _normalise_year(value: object) -> str:
+        """Normalise year values for joins between ratio and market data."""
+        if pd.isna(value):
+            return ""
+        value_str = str(value).strip()
+        if not value_str:
+            return ""
+        if '-' in value_str:
+            return value_str.split('-')[0]
+        return value_str[:4] if len(value_str) >= 4 else value_str
+
     def apply_filters(self, df: pd.DataFrame, filter_dict: Dict[str, float]) -> pd.DataFrame:
         """
         Apply one or more filters to a DataFrame.
@@ -171,7 +188,7 @@ class ScreenerEngine:
         
         # Normalize each metric to 0-100 using P10/P90 winsorisation
         score_df['roe_score'] = self._winsorise_and_scale(df['return_on_equity_pct'], 0, 100)
-        score_df['roce_score'] = self._winsorise_and_scale(df['return_on_capital_employed_pct'], 0, 100)
+        score_df['roce_score'] = self._winsorise_and_scale(df['return_on_capital_pct'], 0, 100)
         score_df['npm_score'] = self._winsorise_and_scale(df['net_profit_margin_pct'], 0, 100)
         
         score_df['fcf_cagr_score'] = self._winsorise_and_scale(df['fcf_cagr_5yr'], 0, 100)
@@ -250,9 +267,42 @@ class ScreenerEngine:
         
         # Get latest year if not specified
         if year is None:
-            year = self.df_ratios['year'].max()
+            # Use the year with the most companies
+            year_counts = self.df_ratios.groupby('year').size()
+            year = year_counts.idxmax()
+            logger.info(f"Using year {year} with {year_counts[year]} companies")
         
         df = self.df_ratios[self.df_ratios['year'] == year].copy()
+        if df.empty:
+            logger.warning(f"No data found for year {year}, using latest available year")
+            year = self.df_ratios['year'].max()
+            df = self.df_ratios[self.df_ratios['year'] == year].copy()
+
+        if 'company_name' not in df.columns:
+            with sqlite3.connect(self.db_path) as conn:
+                company_lookup = pd.read_sql_query(
+                    "SELECT id AS company_id, company_name FROM companies",
+                    conn
+                )
+            df = df.merge(company_lookup, on='company_id', how='left')
+
+        df['year_key'] = df['year'].apply(self._normalise_year)
+        if self.df_market_cap is not None and not self.df_market_cap.empty:
+            market_cap = self.df_market_cap.copy()
+            market_cap['year_key'] = market_cap['year'].apply(self._normalise_year)
+            df = df.merge(
+                market_cap[['company_id', 'year_key', 'market_cap_crore', 'pe_ratio', 'pb_ratio', 'dividend_yield_pct']],
+                on=['company_id', 'year_key'],
+                how='left'
+            )
+        df = df.drop(columns=['year_key'], errors='ignore')
+
+        if 'sector' not in df.columns:
+            sector_lookup = self.df_sectors[['company_id', 'broad_sector']].rename(columns={'broad_sector': 'sector'})
+            df = df.merge(sector_lookup, on='company_id', how='left')
+
+        if 'fcf_cagr_5yr' not in df.columns:
+            df['fcf_cagr_5yr'] = df['free_cash_flow_cr'].fillna(0)
         logger.info(f"Screening {len(df)} companies for year {year}")
         
         # Apply preset filters
@@ -312,7 +362,7 @@ class ScreenerEngine:
                     # Select columns for export
                     columns_to_export = [
                         'rank', 'company_id', 'company_name', 'sector',
-                        'return_on_equity_pct', 'return_on_capital_employed_pct',
+                        'return_on_equity_pct', 'return_on_capital_pct',
                         'net_profit_margin_pct', 'debt_to_equity',
                         'free_cash_flow_cr', 'fcf_cagr_5yr', 'revenue_cagr_5yr',
                         'pat_cagr_5yr', 'pe_ratio', 'pb_ratio', 'dividend_yield_pct',
@@ -326,10 +376,13 @@ class ScreenerEngine:
                     
                     # Format header row
                     worksheet = writer.sheets[preset_name[:31]]
+                    from openpyxl.styles import PatternFill, Font
+                    header_fill = PatternFill(start_color="D9E8F5", end_color="D9E8F5", fill_type="solid")
+                    header_font = Font(bold=True)
                     for col_num, value in enumerate(export_df.columns, 1):
                         cell = worksheet.cell(row=1, column=col_num)
-                        cell.fill = "D9E8F5"  # Light blue
-                        cell.font = cell.font.copy(bold=True)
+                        cell.fill = header_fill
+                        cell.font = header_font
             
             logger.info(f"Exported screener results to {output_path}")
         except Exception as e:

@@ -35,7 +35,7 @@ class RadarChartGenerator:
     # 8 metrics for radar chart
     RADAR_METRICS = [
         'return_on_equity_pct',
-        'return_on_capital_employed_pct',
+        'return_on_capital_pct',
         'net_profit_margin_pct',
         'debt_to_equity',
         'free_cash_flow_cr',
@@ -100,9 +100,12 @@ class RadarChartGenerator:
             DataFrame with normalised metrics
         """
         if year is None:
-            year = df['year'].max()
-        
-        df_year = df[df['year'] == year].copy()
+            available_years = sorted(pd.unique(df['year'].dropna().astype(str)))
+            year = available_years[-1] if available_years else None
+        if year is None:
+            return pd.DataFrame(columns=['company_id'] + self.RADAR_METRICS)
+
+        df_year = df[df['year'].astype(str) == str(year)].copy()
         df_norm = df_year[['company_id'] + self.RADAR_METRICS].copy()
         
         # Normalise each metric to 0-100 using P10/P90 winsorisation

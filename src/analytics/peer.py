@@ -8,13 +8,22 @@ Author: Data Analytics Team
 Date: Sprint 3 (Day 18-20)
 """
 
+import importlib
 import logging
 import pandas as pd
 import numpy as np
 import sqlite3
-from typing import Dict, List, Tuple, Optional
+from typing import Any, Dict, List, Tuple, Optional
 
 logger = logging.getLogger(__name__)
+
+
+def _get_openpyxl_styles() -> Any:
+    """Import openpyxl styles lazily to avoid editor resolution issues."""
+    try:
+        return importlib.import_module("openpyxl.styles")
+    except Exception:
+        return None
 
 
 class PeerComparisonEngine:
@@ -31,7 +40,7 @@ class PeerComparisonEngine:
     # 10 metrics for peer comparison ranking
     RANKING_METRICS = [
         'return_on_equity_pct',
-        'return_on_capital_employed_pct',
+        'return_on_capital_pct',
         'net_profit_margin_pct',
         'debt_to_equity',
         'free_cash_flow_cr',
@@ -93,10 +102,56 @@ class PeerComparisonEngine:
                     "SELECT * FROM financial_ratios ORDER BY company_id, year",
                     conn
                 )
+
+                if 'company_name' not in self.df_ratios.columns:
+                    company_lookup = pd.read_sql_query(
+                        "SELECT id AS company_id, company_name FROM companies",
+                        conn
+                    )
+                    self.df_ratios = self.df_ratios.merge(
+                        company_lookup,
+                        on='company_id',
+                        how='left'
+                    )
             logger.info(f"Loaded {len(self.df_ratios)} financial ratio records")
         except Exception as e:
             logger.error(f"Failed to load data: {e}")
             raise
+
+    def _has_peer_group_data(self, year: str) -> bool:
+        """Check whether the configured peer groups have data for the given year."""
+        if self.df_ratios is None or self.df_ratios.empty:
+            return False
+
+        df_year = self.df_ratios[self.df_ratios['year'].astype(str) == str(year)].copy()
+        if df_year.empty:
+            return False
+
+        for members in self.PEER_GROUPS.values():
+            if not df_year[df_year['company_id'].isin(members)].empty:
+                return True
+
+        return False
+
+    def _resolve_year(self, year: Optional[str]) -> Optional[str]:
+        """Return the latest year with data for the configured peer groups."""
+        if self.df_ratios is None or self.df_ratios.empty:
+            return None
+
+        available_years = sorted(pd.unique(self.df_ratios['year'].dropna().astype(str)))
+        if not available_years:
+            return None
+
+        if year is not None:
+            year_str = str(year)
+            if year_str in available_years and self._has_peer_group_data(year_str):
+                return year_str
+
+        for candidate in reversed(available_years):
+            if self._has_peer_group_data(candidate):
+                return candidate
+
+        return available_years[-1]
     
     def compute_peer_percentiles(self, year: Optional[str] = None) -> pd.DataFrame:
         """
@@ -118,8 +173,10 @@ class PeerComparisonEngine:
             logger.error("Financial ratios data not loaded")
             return pd.DataFrame()
         
+        year = self._resolve_year(year)
         if year is None:
-            year = self.df_ratios['year'].max()
+            logger.error("No ratio data available for peer percentile computation")
+            return pd.DataFrame()
         
         logger.info(f"Computing peer percentiles for year {year}")
         
@@ -228,8 +285,10 @@ class PeerComparisonEngine:
             logger.error("Financial ratios data not loaded")
             return
         
+        year = self._resolve_year(year)
         if year is None:
-            year = self.df_ratios['year'].max()
+            logger.error("No ratio data available for Excel generation")
+            return
         
         logger.info(f"Generating peer comparison Excel for year {year}")
         
@@ -279,8 +338,13 @@ class PeerComparisonEngine:
                     df_comparison.to_excel(writer, sheet_name=sheet_name, index=False)
                     
                     # Format header
-                    from openpyxl.styles import PatternFill, Font
+                    openpyxl_styles = _get_openpyxl_styles()
+                    if openpyxl_styles is None:
+                        raise ImportError("openpyxl is required to style Excel output")
+
                     worksheet = writer.sheets[sheet_name]
+                    PatternFill = getattr(openpyxl_styles, "PatternFill")
+                    Font = getattr(openpyxl_styles, "Font")
                     header_fill = PatternFill(start_color="D9E8F5", end_color="D9E8F5", fill_type="solid")
                     header_font = Font(bold=True)
                     
@@ -291,6 +355,8 @@ class PeerComparisonEngine:
                     
                     # Highlight benchmark company with gold background
                     benchmark = self.BENCHMARK_COMPANIES[peer_group_name]
+                    openpyxl_styles = _get_openpyxl_styles()
+                    PatternFill = getattr(openpyxl_styles, "PatternFill")
                     benchmark_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")
                     
                     for row_num, row in enumerate(df_comparison.values, start=2):
@@ -300,6 +366,8 @@ class PeerComparisonEngine:
                                 cell.fill = benchmark_fill
                     
                     # Colour-code percentile columns
+                    openpyxl_styles = _get_openpyxl_styles()
+                    PatternFill = getattr(openpyxl_styles, "PatternFill")
                     green_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
                     yellow_fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
                     red_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")

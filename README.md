@@ -2,6 +2,7 @@
 
 Sprint 1 deliverable: Excel → SQLite ETL pipeline for 12 datasets and 12 database tables.
 Sprint 2 deliverable: Financial Ratio Engine computing 50+ KPIs for all company-year combinations.
+Sprint 3 deliverable: Multi-criteria financial screener, peer comparison engine, and REST API.
 
 ## Module 1 Sprint 1 Status: ✅ COMPLETED
 
@@ -38,6 +39,22 @@ All Sprint 2 tasks have been successfully completed and verified:
 - ✅ output/capital_allocation.csv generated
 - ✅ Manual spot-check verification passed for 3 companies
 
+## Module 3 Sprint 3 Status: ✅ COMPLETED
+
+All Sprint 3 tasks have been successfully completed and verified:
+- ✅ Multi-criteria financial screener with 6 preset templates
+- ✅ 15 filtering metrics with sector carve-outs (e.g., skip D/E for Financials)
+- ✅ Composite quality score (0-100 scale) with P10/P90 winsorisation
+- ✅ 6 preset screeners: quality_compounder, value_pick, growth_accelerator, dividend_champion, debt_free_blue_chip, turnaround_watch
+- ✅ Peer comparison engine with 11 peer groups and 10 ranking metrics
+- ✅ 528 peer percentile ranks computed and saved to database
+- ✅ Radar chart generator for peer group visualizations
+- ✅ FastAPI REST server with 5 endpoints
+- ✅ API endpoints: /api/v1/health, /api/v1/companies, /api/v1/screener, /api/v1/peer-groups, /api/v1/peer-comparison/{ticker}
+- ✅ 9 API unit tests passing
+- ✅ output/screener_output.xlsx generated with 6 preset sheets
+- ✅ output/peer_comparison.xlsx generated with 11 peer group sheets
+
 ## Quick start
 
 ```bash
@@ -50,6 +67,15 @@ python -m src.etl.loader      # or: .\load.ps1 (Windows script)
 
 # Compute financial ratios
 python -m src.kpi.ratio_engine
+
+# Run screener engine
+python -m src.screener.engine
+
+# Run peer comparison engine
+python -m src.analytics.peer
+
+# Start API server
+python -m src.api.main
 
 # Run tests
 python -m pytest tests/ -v    # or: .\test.ps1 (Windows script)
@@ -67,13 +93,18 @@ python -m pytest tests/ -v    # or: .\test.ps1 (Windows script)
 | `data/raw/` | 7 core Excel files (read-only) |
 | `data/supporting/` | 5 supplementary Excel files |
 | `data/nifty100.db` | SQLite database (generated) |
-| `db/schema.sql` | 13-table schema with FK constraints (12 base + financial_ratios) |
+| `db/schema.sql` | 14-table schema with FK constraints (12 base + financial_ratios + peer_percentiles) |
 | `src/etl/` | `loader.py`, `validator.py`, `normaliser.py` |
 | `src/kpi/` | `ratio_engine.py` - Financial KPI computation engine |
-| `output/` | `load_audit.csv`, `validation_failures.csv`, `ratio_edge_cases.log`, `capital_allocation.csv` |
+| `src/screener/` | `engine.py` - Multi-criteria financial screener |
+| `src/analytics/` | `peer.py` - Peer comparison engine, `charting.py` - Radar chart generator |
+| `src/api/` | `main.py` - FastAPI REST server |
+| `config/` | `screener_config.yaml` - Screener presets and filter definitions |
+| `output/` | `load_audit.csv`, `validation_failures.csv`, `ratio_edge_cases.log`, `capital_allocation.csv`, `screener_output.xlsx`, `peer_comparison.xlsx` |
 | `notebooks/exploratory_queries.sql` | 10 SQL sanity-check queries |
 | `tests/etl/` | 35+ unit tests for ETL pipeline |
 | `tests/kpi/` | 42 unit tests for ratio engine |
+| `tests/api/` | 9 unit tests for API endpoints |
 
 ## Load pipeline
 
@@ -114,6 +145,35 @@ python -m pytest tests/kpi/test_ratios.py -v
 # Verify output files
 ls output/
 # Should show: load_audit.csv, validation_failures.csv, ratio_edge_cases.log, capital_allocation.csv
+```
+
+## Sprint 3 exit checks
+
+```sql
+sqlite3 data/nifty100.db
+SELECT COUNT(*) FROM peer_percentiles;   -- 528
+PRAGMA table_info(peer_percentiles);     -- 6 columns (company_id, peer_group, metric, value, percentile_rank, year)
+```
+
+```bash
+python -m pytest tests/api/ -v
+```
+
+```bash
+# Run screener engine
+python -m src.screener.engine
+# Should generate: output/screener_output.xlsx with 6 preset sheets
+
+# Run peer comparison engine
+python -m src.analytics.peer
+# Should generate: output/peer_comparison.xlsx with 11 peer group sheets
+```
+
+```bash
+# Start API server
+python -m src.api.main
+# Server runs on http://0.0.0.0:8000
+# Test health endpoint: curl http://localhost:8000/api/v1/health
 ```
 
 ## Data note

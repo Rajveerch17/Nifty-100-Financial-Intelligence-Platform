@@ -160,7 +160,7 @@ presets:
     display_name: "Value Pick"
     description: "Attractive valuations, profitability, dividend yield"
     target_count: "10-25 companies"
-    ranking_metric: "fcf_yield"
+    ranking_metric: "composite_quality_score"
     ranking_order: "descending"
     filters:
       pe_max: 20

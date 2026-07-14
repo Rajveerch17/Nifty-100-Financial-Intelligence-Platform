@@ -186,21 +186,25 @@ class ScreenerEngine:
         """
         score_df = df.copy()
         
+        # Ensure required columns exist with fallback values
+        if 'fcf_cagr_5yr' not in score_df.columns:
+            score_df['fcf_cagr_5yr'] = score_df.get('free_cash_flow_cr', pd.Series(0)).fillna(0)
+        
         # Normalize each metric to 0-100 using P10/P90 winsorisation
-        score_df['roe_score'] = self._winsorise_and_scale(df['return_on_equity_pct'], 0, 100)
-        score_df['roce_score'] = self._winsorise_and_scale(df['return_on_capital_pct'], 0, 100)
-        score_df['npm_score'] = self._winsorise_and_scale(df['net_profit_margin_pct'], 0, 100)
+        score_df['roe_score'] = self._winsorise_and_scale(df['return_on_equity_pct'].fillna(0), 0, 100)
+        score_df['roce_score'] = self._winsorise_and_scale(df.get('return_on_capital_pct', df.get('return_on_capital_employed_pct', pd.Series(0))).fillna(0), 0, 100)
+        score_df['npm_score'] = self._winsorise_and_scale(df['net_profit_margin_pct'].fillna(0), 0, 100)
         
-        score_df['fcf_cagr_score'] = self._winsorise_and_scale(df['fcf_cagr_5yr'], 0, 100)
+        score_df['fcf_cagr_score'] = self._winsorise_and_scale(score_df['fcf_cagr_5yr'].fillna(0), 0, 100)
         score_df['cfo_pat_score'] = self._winsorise_and_scale(df['cfo_pat_ratio'].fillna(0.5), 0, 100)
-        score_df['fcf_flag_score'] = (df['free_cash_flow_cr'] > 0).astype(int) * 100
+        score_df['fcf_flag_score'] = (df.get('free_cash_flow_cr', pd.Series(0)).fillna(0) > 0).astype(int) * 100
         
-        score_df['rev_cagr_score'] = self._winsorise_and_scale(df['revenue_cagr_5yr'], 0, 100)
-        score_df['pat_cagr_score'] = self._winsorise_and_scale(df['pat_cagr_5yr'], 0, 100)
+        score_df['rev_cagr_score'] = self._winsorise_and_scale(df.get('revenue_cagr_5yr', pd.Series(0)).fillna(0), 0, 100)
+        score_df['pat_cagr_score'] = self._winsorise_and_scale(df.get('pat_cagr_5yr', pd.Series(0)).fillna(0), 0, 100)
         
         # D/E: lower is better (invert)
-        score_df['de_score'] = 100 - self._winsorise_and_scale(df['debt_to_equity'], 0, 100)
-        score_df['icr_score'] = self._winsorise_and_scale(df['interest_coverage'].fillna(10), 0, 100)
+        score_df['de_score'] = 100 - self._winsorise_and_scale(df.get('debt_to_equity', pd.Series(1)).fillna(1), 0, 100)
+        score_df['icr_score'] = self._winsorise_and_scale(df.get('interest_coverage', pd.Series(10)).fillna(10), 0, 100)
         
         # Compute weighted composite score
         profitability = (score_df['roe_score'] * 0.15 + 

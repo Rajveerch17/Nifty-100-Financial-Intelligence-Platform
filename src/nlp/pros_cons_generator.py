@@ -97,6 +97,7 @@ class ProsConsGenerator:
         return cagr
     
     def is_improving(self, values: List[float], years: int = 3) -> bool:
+        # sourcery skip: invert-any-all, use-any, use-next
         """Check if metric is improving for N consecutive years"""
         if len(values) < years:
             return False
@@ -107,6 +108,7 @@ class ProsConsGenerator:
         return True
     
     def is_declining(self, values: List[float], years: int = 3) -> bool:
+        # sourcery skip: invert-any-all, use-any, use-next
         """Check if metric is declining for N consecutive years"""
         if len(values) < years:
             return False
@@ -117,12 +119,14 @@ class ProsConsGenerator:
         return True
     
     def all_positive(self, values: List[float], years: int = 5) -> bool:
+        # sourcery skip: assign-if-exp, reintroduce-else
         """Check if all values are positive for N years"""
         if len(values) < years:
             return False
         return all(v > 0 for v in values[:years])
     
     def all_negative(self, values: List[float], years: int = 3) -> bool:
+        # sourcery skip: assign-if-exp, reintroduce-else
         """Check if all values are negative for N years"""
         if len(values) < years:
             return False
@@ -563,7 +567,7 @@ class ProsConsGenerator:
         logger.info(f"Summary: {total} total entries ({pros_count} pros, {cons_count} cons)")
         logger.info(f"Average confidence: {pros_cons_df['confidence_pct'].mean():.1f}%")
     
-    def run(self) -> None:
+    def run(self) -> None:  # sourcery skip: extract-method
         """Main execution method"""
         try:
             self.connect()

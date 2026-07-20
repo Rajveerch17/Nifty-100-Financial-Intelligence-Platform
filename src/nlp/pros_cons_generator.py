@@ -46,7 +46,7 @@ class ProsConsGenerator:
         query = """
         SELECT DISTINCT
             fr.company_id,
-            s.broad_sector as sector,
+            s.company_name as sector,
             fr.year,
             fr.return_on_equity_pct as roe,
             fr.operating_profit_margin_pct as opm,
@@ -64,7 +64,7 @@ class ProsConsGenerator:
             cf.financing_activity as cff,
             bs.total_assets
         FROM financial_ratios fr
-        LEFT JOIN sectors s ON fr.company_id = s.company_id
+        LEFT JOIN companies s ON fr.company_id = s.id
         LEFT JOIN profitandloss pl ON fr.company_id = pl.company_id AND fr.year = pl.year
         LEFT JOIN balancesheet bs ON fr.company_id = bs.company_id AND fr.year = bs.year
         LEFT JOIN cashflow cf ON fr.company_id = cf.company_id AND fr.year = cf.year
@@ -308,14 +308,16 @@ class ProsConsGenerator:
         de_series = self.get_time_series(df, company_id, 'de_ratio', 5)
         
         # Con Rule 1: D/E > 2.0 for non-financial companies
-        if sector not in ['Financials', 'Financial Services']:
+        # Note: Using company_name as proxy for sector - may need adjustment
+        if sector not in ['Financials', 'Financial Services', 'HDFC Bank', 'ICICI Bank', 'Axis Bank', 'Kotak Bank', 'SBI']:
             if pd.notna(latest['de_ratio']) and latest['de_ratio'] > 2.0:
                 confidence = min(100, 60 + (latest['de_ratio'] - 2.0) * 10)
+                de_value = latest['de_ratio']
                 cons.append({
                     'company_id': company_id,
                     'type': 'con',
                     'rule_id': 'CON_01',
-                    'text': f"Debt-to-equity ratio of {latest['de_ratio']:.2f} is elevated for a non-financial company and warrants monitoring",
+                    'text': f"Debt-to-equity ratio of {de_value:.2f} is elevated for a non-financial company and warrants monitoring",
                     'confidence_pct': int(confidence)
                 })
         

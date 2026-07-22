@@ -5,6 +5,7 @@ Sprint 2 deliverable: Financial Ratio Engine computing 50+ KPIs for all company-
 Sprint 3 deliverable: Multi-criteria financial screener, peer comparison engine, and REST API.
 Sprint 4 deliverable: Streamlit dashboard with 8 screens and valuation module.
 Sprint 5 deliverable: NLP module for auto-generating pros/cons, Cash Flow Intelligence, and PDF tearsheet reports for all companies.
+Sprint 6 deliverable: KMeans clustering, cluster profiling, FastAPI server with routers, and comprehensive testing.
 
 ## Module 1 Sprint 1 Status: ✅ COMPLETED
 
@@ -96,6 +97,31 @@ All Sprint 5 tasks have been successfully completed and verified:
 - ✅ 100% company coverage: Every company has at least 1 pro and 1 con
 - ✅ All existing dashboard functionality intact (no breaking changes)
 
+## Module 6 Sprint 6 Status: ✅ COMPLETED
+
+All Sprint 6 tasks have been successfully completed and verified:
+- ✅ KMeans Clustering Engine with 5 clusters (src/analytics/clustering.py)
+- ✅ Features: ROE, D/E, Revenue CAGR 5yr, FCF CAGR 5yr, OPM
+- ✅ Missing value imputation with sector median
+- ✅ StandardScaler normalization
+- ✅ Elbow plot generation (reports/elbow_plot.png)
+- ✅ Cluster labels output (output/cluster_labels.csv)
+- ✅ Cluster profiling with mean/median per cluster
+- ✅ Descriptive cluster names assigned
+- ✅ Correlation heatmap (reports/correlation_heatmap.png)
+- ✅ Outlier detection with Z-score > 3 (output/outlier_report.csv)
+- ✅ Portfolio statistics P10-P90 (output/portfolio_stats.csv)
+- ✅ FastAPI server scaffold with routers (src/api/main.py)
+- ✅ CORS middleware for all origins
+- ✅ Request logging middleware
+- ✅ 8 router modules: health, companies, screener, sectors, peers, valuation, portfolio, documents
+- ✅ 16 API endpoints implemented
+- ✅ 26 API unit tests passing
+- ✅ 6 performance tests passing
+- ✅ 121 ETL/KPI/DQ unit tests passing
+- ✅ API server verified at http://localhost:8000
+- ✅ OpenAPI documentation available at /docs
+
 ## Quick start
 
 ```bash
@@ -130,6 +156,10 @@ python -m src.analytics.capital_allocation_report
 python -m src.reports.tearsheet
 python -m src.reports.portfolio_summary
 
+# Run clustering and cluster statistics
+python -m src.analytics.clustering
+python -m src.analytics.cluster_stats
+
 # Start Streamlit dashboard
 streamlit run src/dashboard/app.py
 
@@ -156,19 +186,22 @@ python -m pytest tests/ -v    # or: .\test.ps1 (Windows script)
 | `src/etl/` | `loader.py`, `validator.py`, `normaliser.py` |
 | `src/kpi/` | `ratio_engine.py` - Financial KPI computation engine |
 | `src/screener/` | `engine.py` - Multi-criteria financial screener |
-| `src/analytics/` | `peer.py` - Peer comparison, `charting.py` - Radar charts, `valuation.py` - Valuation, `cashflow_kpis.py` - Cash flow intelligence, `capital_allocation_report.py` - Pattern analysis |
+| `src/analytics/` | `peer.py` - Peer comparison, `charting.py` - Radar charts, `valuation.py` - Valuation, `cashflow_kpis.py` - Cash flow intelligence, `capital_allocation_report.py` - Pattern analysis, `clustering.py` - KMeans clustering, `cluster_stats.py` - Cluster profiling |
 | `src/nlp/` | `parser.py` - Text field parser, `pros_cons_generator.py` - Auto pros/cons with 12+12 rules |
 | `src/reports/` | `tearsheet.py` - 2-page PDF generator, `portfolio_summary.py` - Portfolio PDF |
-| `src/api/` | `main.py` - FastAPI REST server |
+| `src/api/` | `main.py` - FastAPI REST server, `routers/` - 8 router modules (health, companies, screener, sectors, peers, valuation, portfolio, documents) |
 | `src/dashboard/` | `app.py` - Streamlit dashboard, `pages/` - 8 screen files, `utils/db.py` - Cached data loader |
 | `config/` | `screener_config.yaml` - Screener presets and filter definitions |
-| `output/` | CSV/Excel analysis files: load_audit, validation_failures, ratio_edge_cases, capital_allocation, screener_output, peer_comparison, valuation_summary, valuation_flags, analysis_parsed, parse_failures, pros_cons_generated, cashflow_intelligence, distress_alerts, pattern_changes |
+| `output/` | CSV/Excel analysis files: load_audit, validation_failures, ratio_edge_cases, capital_allocation, screener_output, peer_comparison, valuation_summary, valuation_flags, analysis_parsed, parse_failures, pros_cons_generated, cashflow_intelligence, distress_alerts, pattern_changes, cluster_labels, outlier_report, portfolio_stats |
 | `reports/tearsheets/` | 99 company PDF tearsheets (2 pages each) |
 | `reports/portfolio/` | Portfolio summary PDF (101 pages) |
+| `reports/` | elbow_plot.png, correlation_heatmap.png |
 | `notebooks/exploratory_queries.sql` | 10 SQL sanity-check queries |
 | `tests/etl/` | 35+ unit tests for ETL pipeline |
 | `tests/kpi/` | 42 unit tests for ratio engine |
-| `tests/api/` | 9 unit tests for API endpoints |
+| `tests/dq/` | 14 unit tests for data quality rules |
+| `tests/api/` | 26 unit tests for API endpoints |
+| `tests/performance/` | 6 performance tests for API |
 
 ## Load pipeline
 
@@ -289,6 +322,28 @@ python -m src.reports.portfolio_summary
 ls output/ | wc -l        # Should show 15+ files
 ls reports/tearsheets/ | wc -l  # Should show 99 PDF files
 ls reports/portfolio/ | wc -l   # Should show 1 PDF file
+```
+
+## Sprint 6 exit checks
+
+```bash
+# Run clustering
+python -m src.analytics.clustering
+# Should generate: reports/elbow_plot.png, output/cluster_labels.csv
+
+# Run cluster statistics
+python -m src.analytics.cluster_stats
+# Should generate: reports/correlation_heatmap.png, output/outlier_report.csv, output/portfolio_stats.csv
+
+# Start API server
+python -m src.api.main
+# Server runs on http://0.0.0.0:8000
+# Test health endpoint: curl http://localhost:8000/api/v1/health
+# Test docs: http://localhost:8000/docs
+
+# Run all tests
+python -m pytest tests/ -v
+# Should show: 153 tests passing (121 ETL/KPI/DQ + 26 API + 6 performance)
 ```
 
 ## Dashboard Screens

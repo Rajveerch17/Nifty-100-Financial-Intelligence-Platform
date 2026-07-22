@@ -11,7 +11,7 @@ def test_generate_peer_comparison_excel_falls_back_to_latest_available_year(tmp_
     conn.execute(
         "CREATE TABLE financial_ratios ("
         "company_id TEXT, year TEXT, company_name TEXT, "
-        "return_on_equity_pct REAL, return_on_capital_employed_pct REAL, "
+        "return_on_equity_pct REAL, return_on_capital_pct REAL, "
         "net_profit_margin_pct REAL, debt_to_equity REAL, free_cash_flow_cr REAL, "
         "pat_cagr_5yr REAL, revenue_cagr_5yr REAL, eps_cagr_5yr REAL, "
         "interest_coverage REAL, asset_turnover REAL)"

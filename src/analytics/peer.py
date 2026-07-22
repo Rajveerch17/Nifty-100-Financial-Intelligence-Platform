@@ -296,6 +296,7 @@ class PeerComparisonEngine:
         
         try:
             with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+                sheets_written = 0
                 
                 for peer_group_name, members in self.PEER_GROUPS.items():
                     # Filter to group members
@@ -336,6 +337,7 @@ class PeerComparisonEngine:
                     # Write to Excel
                     sheet_name = peer_group_name[:31]  # Excel sheet name limit
                     df_comparison.to_excel(writer, sheet_name=sheet_name, index=False)
+                    sheets_written += 1
                     
                     # Format header
                     openpyxl_styles = _get_openpyxl_styles()
@@ -385,7 +387,13 @@ class PeerComparisonEngine:
                                 else:
                                     cell.fill = red_fill
             
-            logger.info(f"Generated peer comparison Excel: {output_path}")
+            if sheets_written == 0:
+                logger.warning("No peer groups had data - creating empty Excel with summary sheet")
+                # Create a summary sheet to avoid Excel error
+                df_summary = pd.DataFrame({'message': ['No peer group data available for this year']})
+                df_summary.to_excel(writer, sheet_name='Summary', index=False)
+            
+            logger.info(f"Generated peer comparison Excel: {output_path} ({sheets_written} sheets)")
         except Exception as e:
             logger.error(f"Failed to generate Excel: {e}")
             raise

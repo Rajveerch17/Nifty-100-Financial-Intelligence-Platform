@@ -264,7 +264,9 @@ def init_database(conn: sqlite3.Connection, schema_path: Path) -> None:
 def write_table(conn: sqlite3.Connection, table_name: str, df: pd.DataFrame) -> int:
     columns = TABLE_COLUMNS[table_name]
     frame = df[columns].copy()
-    frame.to_sql(table_name, conn, if_exists="append", index=False, method="multi")
+    # Use smaller chunksize for large tables to avoid SQLite variable limit
+    chunksize = 100 if table_name == "stock_prices" else 1000
+    frame.to_sql(table_name, conn, if_exists="append", index=False, method="multi", chunksize=chunksize)
     return len(frame)
 
 

@@ -165,7 +165,7 @@ class CapitalAllocationReport:
             return
         
         # Load cashflow intelligence
-        cf_intel_df = pd.read_excel(cf_intel_path)
+        cf_intel_df = pd.read_excel(cf_intel_path, header=1)
         
         # Already has capital_allocation_label from Day 31
         logger.info("Capital allocation already included in cashflow_intelligence.xlsx from Day 31")

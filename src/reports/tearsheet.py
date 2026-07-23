@@ -137,11 +137,11 @@ class TearsheetGenerator:
         # Get cash flow intelligence
         cf_intel_path = Path('output/cashflow_intelligence.xlsx')
         if cf_intel_path.exists():
-            cf_intel_df = pd.read_excel(cf_intel_path)
+            cf_intel_df = pd.read_excel(cf_intel_path, header=1)
             cf_intel = cf_intel_df[cf_intel_df['company_id'] == company_id]
         else:
             cf_intel = pd.DataFrame()
-        
+
         return {
             'company': company_df.iloc[0],
             'sector': sector,
@@ -151,7 +151,7 @@ class TearsheetGenerator:
             'cons': cons,
             'cf_intelligence': cf_intel.iloc[0] if len(cf_intel) > 0 else None
         }
-        
+
     def connect(self):
         """Establish database connection"""
         self.conn = sqlite3.connect(self.db_path)
@@ -205,11 +205,11 @@ class TearsheetGenerator:
         # Get cash flow intelligence
         cf_intel_path = Path('output/cashflow_intelligence.xlsx')
         if cf_intel_path.exists():
-            cf_intel_df = pd.read_excel(cf_intel_path)
+            cf_intel_df = pd.read_excel(cf_intel_path, header=1)
             cf_intel = cf_intel_df[cf_intel_df['company_id'] == company_id]
         else:
             cf_intel = pd.DataFrame()
-        
+
         return {
             'company': company_df.iloc[0],
             'sector': sector,

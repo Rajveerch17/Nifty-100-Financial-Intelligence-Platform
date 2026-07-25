@@ -478,12 +478,6 @@ streamlit run src/dashboard/app.py
 - 101-page portfolio summary PDF
 - 100% company coverage guarantee
 
-## Documentation
-
-- `SPRINT5_COMPLETION_SUMMARY.md` - Detailed Sprint 5 deliverables and verification
-- `DASHBOARD_FIXES_SUMMARY.md` - Dashboard testing results and bug fixes
-- `Nifty100_Project_Document_FINAL.pdf` - Complete project specification
-
 ## Dependencies
 
 Core packages:
@@ -496,4 +490,3 @@ Core packages:
 - reportlab - PDF generation
 
 See `requirements.txt` for complete list with versions.
-

@@ -6,6 +6,7 @@ Provides sidebar navigation to all 8 screens.
 """
 
 import importlib.util
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -34,6 +35,33 @@ PAGES = {
 }
 
 
+@st.cache_resource
+def _ensure_database() -> Path:
+    """Build the SQLite database on hosts where the generated file is absent."""
+    db_path = project_root / "data" / "nifty100.db"
+    required_tables = {"companies", "financial_ratios"}
+
+    if db_path.exists():
+        with sqlite3.connect(db_path) as conn:
+            tables = {
+                row[0]
+                for row in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type = 'table'"
+                )
+            }
+        if required_tables.issubset(tables):
+            return db_path
+
+    from src.etl.loader import run_load
+    from src.kpi.ratio_engine import RatioEngine
+
+    run_load()
+    engine = RatioEngine(str(db_path))
+    ratios = engine.compute_all_ratios()
+    engine.save_ratios_to_db(ratios)
+    return db_path
+
+
 def _load_screen(filename: str) -> None:
     screen_path = SCREENS_DIR / filename
     if not screen_path.exists():
@@ -55,6 +83,12 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+try:
+    _ensure_database()
+except Exception as exc:
+    st.error(f"Unable to initialise dashboard data: {exc}")
+    st.stop()
 
 st.markdown(
     """
